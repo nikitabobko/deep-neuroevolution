@@ -243,7 +243,7 @@ def run_master(master_redis_cfg, log_dir, exp):
                     eval_rets.append(result.eval_return)
                     eval_lens.append(result.eval_length)
             else:
-                assert (result.noise_inds_n.ndim == 1 and
+                assert ((not hasattr(result.noise_inds_n, "ndim") or result.noise_inds_n.ndim == 1) and
                         result.returns_n2.shape == result.lengths_n2.shape == (len(result.noise_inds_n), 2))
                 assert result.returns_n2.dtype == np.float32
                 # Store results only for current tasks
