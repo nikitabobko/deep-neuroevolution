@@ -2,7 +2,6 @@ import logging
 import time
 from collections import namedtuple
 
-
 import numpy as np
 
 from .dist import MasterClient, WorkerClient
@@ -84,6 +83,7 @@ def compute_centered_ranks(x):
     y -= .5
     return y
 
+
 def make_session(single_threaded):
     import tensorflow as tf
     if not single_threaded:
@@ -102,6 +102,7 @@ def itergroups(items, group_size):
     if group:
         yield tuple(group)
 
+
 def get_ref_batch(env, batch_size=32):
     ref_batch = []
     ob = env.reset()
@@ -111,6 +112,7 @@ def get_ref_batch(env, batch_size=32):
         if done:
             ob = env.reset()
     return ref_batch
+
 
 def batched_weighted_sum(weights, vecs, batch_size):
     total = 0.
@@ -138,6 +140,16 @@ def setup(exp, single_threaded):
     return config, env, sess, policy
 
 
+# def flat_list(obj_list):
+#     if isinstance(obj_list, list) and \
+#             len(obj_list) == 1 and \
+#             isinstance(obj_list[0], list) and \
+#             len(obj_list[0]) == 1:
+#         return np.array(obj_list[0])
+#     else:
+#         return obj_list
+
+
 def run_master(master_redis_cfg, log_dir, exp):
     logger.info('run_master: {}'.format(locals()))
     from .optimizers import SGD, Adam
@@ -161,7 +173,6 @@ def run_master(master_redis_cfg, log_dir, exp):
         ref_batch = get_ref_batch(env, batch_size=128)
         policy.set_ref_batch(ref_batch)
 
-
     if 'init_from' in exp['policy']:
         logger.info('Initializing weights from {}'.format(exp['policy']['init_from']))
         policy.initialize_from(exp['policy']['init_from'], ob_stat)
@@ -173,7 +184,8 @@ def run_master(master_redis_cfg, log_dir, exp):
     elif config.episode_cutoff_mode.startswith('adaptive:'):
         _, args = config.episode_cutoff_mode.split(':')
         arg0, arg1, arg2, arg3 = args.split(',')
-        tslimit, incr_tslimit_threshold, tslimit_incr_ratio, tslimit_max = int(arg0), float(arg1), float(arg2), float(arg3)
+        tslimit, incr_tslimit_threshold, tslimit_incr_ratio, tslimit_max = int(arg0), float(arg1), float(arg2), float(
+            arg3)
         adaptive_tslimit = True
         logger.info(
             'Starting timestep limit set to {}. When {}% of rollouts hit the limit, it will be increased by {}. The maximum timestep limit is {}'.format(
@@ -209,7 +221,8 @@ def run_master(master_redis_cfg, log_dir, exp):
             for _ in range(1000):
                 temp_task_id, _ = master.pop_result()
                 if temp_task_id == curr_task_id:
-                    new_task_checker = True; break
+                    new_task_checker = True
+                    break
 
             # Re-declare task if original declaration fails to register
             if not new_task_checker:
@@ -297,7 +310,7 @@ def run_master(master_redis_cfg, log_dir, exp):
         assert g.shape == (policy.num_params,) and g.dtype == np.float32 and count == len(noise_inds_n)
         update_ratio, theta = optimizer.update(-g + config.l2coeff * theta)
 
-        #updating policy
+        # updating policy
         policy.set_trainable_flat(theta)
 
         # Update ob stat (we're never running the policy in the master, but we might be snapshotting the policy)
@@ -320,7 +333,7 @@ def run_master(master_redis_cfg, log_dir, exp):
         tlogger.record_tabular("EvalEpRewStd", np.nan if not eval_rets else np.std(eval_rets))
         tlogger.record_tabular("EvalEpLenMean", np.nan if not eval_rets else np.mean(eval_lens))
         tlogger.record_tabular("EvalPopRank", np.nan if not eval_rets else (
-            np.searchsorted(np.sort(returns_n2.ravel()), eval_rets).mean() / returns_n2.size))
+                np.searchsorted(np.sort(returns_n2.ravel()), eval_rets).mean() / returns_n2.size))
         tlogger.record_tabular("EvalEpCount", len(eval_rets))
 
         tlogger.record_tabular("Norm", float(np.square(policy.get_trainable_flat()).sum()))
@@ -419,7 +432,7 @@ def run_worker(master_redis_cfg, relay_redis_cfg, noise, *, min_task_runtime=.2)
                 policy.set_trainable_flat(task_data.params - v)
                 rews_neg, len_neg, nov_vec_neg = rollout_and_update_ob_stat(
                     policy, env, task_data.timestep_limit, rs, task_ob_stat, config.calc_obstat_prob)
-    
+
                 signreturns.append([np.sign(rews_pos).sum(), np.sign(rews_neg).sum()])
                 noise_inds.append(noise_idx)
                 returns.append([rews_pos.sum(), rews_neg.sum()])
