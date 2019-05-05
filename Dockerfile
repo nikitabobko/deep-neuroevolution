@@ -14,7 +14,8 @@ ADD . /root/deep-neuroevolution/
 # Install python dependencies directly
 # virutalenv doesn't make sense in a docker container 
 RUN cd ~/deep-neuroevolution/ && \
-    pip install -r requirements.txt
+    pip install -r requirements.txt &&
+    pip install gym[atari]
 
 CMD bash -c "cd /root/deep-neuroevolution && ./scripts/local_run_redis.sh"
 
