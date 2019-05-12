@@ -88,6 +88,7 @@ def workers(algo, master_host, master_port, relay_socket_path, num_workers):
 
 if __name__ == '__main__':
     import pydevd_pycharm
+    print("-----------before")
     pydevd_pycharm.settrace('35.228.245.217', port=5005, stdoutToServer=True, stderrToServer=True)
     print('------hui')
     cli()
