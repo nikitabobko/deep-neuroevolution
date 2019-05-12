@@ -313,7 +313,7 @@ class ESAtariPolicy(Policy):
             is_ref_ph = tf.placeholder(tf.bool, shape=[])
 
             a = self._make_net(o, is_ref_ph)
-            self._act = U.function([o, is_ref_ph] , a)
+            self._act = U.function([o, is_ref_ph], a)
         return scope
 
     def _make_net(self, o, is_ref):
@@ -327,7 +327,7 @@ class ESAtariPolicy(Policy):
         x = layers.fully_connected(x, num_outputs=256, activation_fn=None, scope='fc')
         x = layers.batch_norm(x, scale=True, is_training=is_ref, decay=0., updates_collections=None, activation_fn=tf.nn.relu, epsilon=1e-3)
         a = layers.fully_connected(x, num_outputs=self.num_actions, activation_fn=None, scope='out')
-        return tf.argmax(a,1)
+        return tf.argmax(a, 1)
 
     def set_ref_batch(self, ref_batch):
         self.ref_list = []
