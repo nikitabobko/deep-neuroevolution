@@ -45,7 +45,8 @@ def import_algo(name):
 @click.option('--exp_file')
 @click.option('--master_socket_path', required=True)
 @click.option('--log_dir')
-def master(algo, exp_str, exp_file, master_socket_path, log_dir):
+@click.option('--num_workers', type=int, default=0)
+def master(algo, exp_str, exp_file, master_socket_path, log_dir, num_workers):
     # Start the master
     assert (exp_str is None) != (exp_file is None), 'Must provide exp_str xor exp_file to the master'
     if exp_str:
@@ -87,8 +88,4 @@ def workers(algo, master_host, master_port, relay_socket_path, num_workers):
 
 
 if __name__ == '__main__':
-    print("-----------before")
-    import pydevd_pycharm
-    pydevd_pycharm.settrace('109.252.71.22', port=60500, stdoutToServer=True, stderrToServer=True)
-    print('------hui')
     cli()
