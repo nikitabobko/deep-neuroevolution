@@ -3,7 +3,7 @@ click==6.7
 gym==0.9.4
 h5py==2.7.0
 mujoco-py==0.5.7
-numpy==1.13.3
+numpy==1.16.3
 packaging==16.8
 pyglet==1.2.4
 PyOpenGL==3.1.0
@@ -11,5 +11,7 @@ pyparsing==2.2.0
 redis==2.10.5
 requests>=2.20.0
 six==1.10.0
-tensorflow==0.12.1
+tensorflow==1.13.1
+tensorflow_probability==0.6.0
 Werkzeug==0.12.1
+pydevd-pycharm==191.7141.48

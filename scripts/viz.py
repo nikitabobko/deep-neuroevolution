@@ -40,7 +40,7 @@ def main(env_id, policy_file, record, stochastic, extra_kwargs):
         while True:
             if is_atari_policy:
                 rews, t, novelty_vector = pi.rollout(env, render=True, random_stream=np.random if stochastic else None)
-            print('return={:.4f} len={}'.format(rews.sum(), t))
+            print('return={:.4f} len={}'.format(rews, t))
 
             if record:
                 env.close()
