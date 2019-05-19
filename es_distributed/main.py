@@ -50,7 +50,7 @@ def master(algo, exp_file, log_dir, num_workers):
     logging.info('Spawning {} workers'.format(num_workers))
 
     bind_ip = '127.0.0.1'
-    bind_port = 6666
+    bind_port = 9999
 
     write_pipes = []
     for worker_id in range(num_workers):
@@ -68,21 +68,21 @@ def master(algo, exp_file, log_dir, num_workers):
             client.connect((bind_ip, bind_port))
             print("connected")
 
-            if worker_id == 0:
-                import pydevd_pycharm
-                pydevd_pycharm.settrace('localhost', port=7007, stdoutToServer=True, stderrToServer=True)
-                print('----slave 0')
-            elif worker_id == 1:
-                import pydevd_pycharm
-                pydevd_pycharm.settrace('localhost', port=7008, stdoutToServer=True, stderrToServer=True)
-            elif worker_id == 2:
-                import pydevd_pycharm
-                pydevd_pycharm.settrace('localhost', port=7009, stdoutToServer=True, stderrToServer=True)
-            elif worker_id == 3:
-                import pydevd_pycharm
-                pydevd_pycharm.settrace('localhost', port=7010, stdoutToServer=True, stderrToServer=True)
-            else:
-                assert False
+            # if worker_id == 0:
+            #     import pydevd_pycharm
+            #     pydevd_pycharm.settrace('localhost', port=7007, stdoutToServer=True, stderrToServer=True)
+            #     print('----slave 0')
+            # elif worker_id == 1:
+            #     import pydevd_pycharm
+            #     pydevd_pycharm.settrace('localhost', port=7008, stdoutToServer=True, stderrToServer=True)
+            # elif worker_id == 2:
+            #     import pydevd_pycharm
+            #     pydevd_pycharm.settrace('localhost', port=7009, stdoutToServer=True, stderrToServer=True)
+            # elif worker_id == 3:
+            #     import pydevd_pycharm
+            #     pydevd_pycharm.settrace('localhost', port=7010, stdoutToServer=True, stderrToServer=True)
+            # else:
+            #     assert False
 
             algo.run_worker(exp, client)
             return

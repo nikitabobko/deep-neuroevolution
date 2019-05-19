@@ -1,12 +1,16 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import logging
 import time
 from collections import namedtuple
 
-import numpy as np
-import tensorflow as tf
-import tensorflow_probability as tfp
+from tensorflow_probability.python.optimizer.differential_evolution import *
+from tensorflow_probability.python.optimizer.differential_evolution import _ensure_list, _get_mixing_indices, \
+    _get_mutants, _binary_crossover
 
-from .dist import MasterClient, WorkerClient, CoolWorkerClient, CoolMasterClient
+from .dist import CoolWorkerClient, CoolMasterClient
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +158,55 @@ class HackFloat(float):
         self.dtype = tf.float32
 
 
+def differential_evolution_one_step(
+        objective_function,
+        population,
+        population_values=None,
+        differential_weight=0.5,
+        crossover_prob=0.9,
+        seed=None,
+        name=None):
+    with tf.name_scope(name, 'one_step',
+                       [population,
+                        population_values,
+                        differential_weight,
+                        crossover_prob]):
+        population, _ = _ensure_list(population)
+        if population_values is None:
+            population_values = objective_function(*population)
+        population_size = tf.shape(population[0])[0]
+        seed_stream = distributions.SeedStream(seed, salt='one_step')
+        mixing_indices = _get_mixing_indices(population_size, seed=seed_stream())
+        # Construct the mutated solution vectors. There is one for each member of
+        # the population.
+        mutants = _get_mutants(population,
+                               population_size,
+                               mixing_indices,
+                               differential_weight)
+        # Perform recombination between the parents and the mutants.
+        candidates = _binary_crossover(population,
+                                       population_size,
+                                       mutants,
+                                       crossover_prob,
+                                       seed=seed_stream())
+        candidate_values = objective_function(*candidates)
+        if population_values is None:
+            population_values = objective_function(*population)
+
+        infinity = tf.zeros_like(population_values) + np.inf
+
+        population_values = tf.where(tf.debugging.is_nan(population_values),
+                                     x=infinity,
+                                     y=population_values)
+
+        to_replace = candidate_values < population_values
+
+        next_population = tf.where(to_replace, x=candidates, y=population)
+        next_values = tf.where(to_replace, x=candidate_values, y=population_values)
+
+    return next_population, next_values
+
+
 master = None
 tslimit = None
 
@@ -163,8 +216,10 @@ def differential_evolution_one_step_objective_function(*population):
     global tslimit
     assert len(population) == master.num_workers
 
+    print('master: Send tasks')
     master.declare_tasks(list(map(lambda x: Task(tf.get_default_session().run(x), tslimit), population)))
 
+    print('master: Waiting result')
     return list(map(lambda x: -x, master.pop_results()))
 
 
@@ -187,46 +242,43 @@ def run_master(log_dir, exp, num_workers, sockets):
     tstart = time.time()
 
     population = [theta + np.random.sample(theta.size) for _ in range(num_workers)]
+    efficiency = None
 
     global master
     master = CoolMasterClient(num_workers, sockets)
 
     generation = 0
 
-    import pydevd_pycharm
-    pydevd_pycharm.settrace('localhost', port=5005, stdoutToServer=True, stderrToServer=True)
-    print('------master')  # todo
+    # import pydevd_pycharm
+    # pydevd_pycharm.settrace('localhost', port=5005, stdoutToServer=True, stderrToServer=True)
+    # print('------master')  # todo
 
     while True:
         step_tstart = time.time()
 
         tlogger.log('********** Iteration {} **********'.format(generation))
 
-        master.declare_tasks(list(map(lambda x: Task(x, tslimit), population)))
-        print('send tasks')
-
-        print('Waiting result')
-        results = master.pop_results()
-
         crossover_prob = HackFloat(0.9)
 
-        rews_inverted = list(map(lambda x: -x, results))
-        step = tfp.optimizer.differential_evolution_one_step(differential_evolution_one_step_objective_function,
-                                                             list(map(lambda x: tf.constant(x, dtype=tf.float32),
-                                                                      population)),
-                                                             population_values=rews_inverted,
-                                                             crossover_prob=crossover_prob)
+        population, efficiency = differential_evolution_one_step(differential_evolution_one_step_objective_function,
+                                                                 list(map(lambda x: tf.constant(x, dtype=tf.float32),
+                                                                          population)),
+                                                                 population_values=efficiency,
+                                                                 crossover_prob=crossover_prob)
+
+        population = tf.get_default_session().run(population)
+        efficiency = tf.get_default_session().run(efficiency)
 
         # noinspection PyTypeChecker
-        theta = population[np.argmin(rews_inverted)]
+        theta = population[np.argmin(efficiency)]
         # updating policy
         policy.set_trainable_flat(theta)
 
         step_tend = time.time()
 
-        tlogger.record_tabular("Rew", 5)  # todo
         tlogger.record_tabular("TimeElapsedThisIter", step_tend - step_tstart)
         tlogger.record_tabular("TimeElapsed", step_tend - tstart)
+        tlogger.record_tabular("Efficiency", -np.min(efficiency))
         tlogger.dump_tabular()
 
         if config.snapshot_freq != 0 and generation % config.snapshot_freq == 0:

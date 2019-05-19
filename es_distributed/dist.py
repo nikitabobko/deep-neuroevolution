@@ -2,9 +2,6 @@ import logging
 import os
 import pickle
 import time
-import json
-import numpy as np
-from collections import deque
 from pprint import pformat
 
 import redis
@@ -234,6 +231,21 @@ class WorkerClient:
         logger.debug('[worker] Pushed result for task {}'.format(task_id))
 
 
+def recv_from_socket(socket, size):
+    data = b''
+    while size > 0:
+        chunk = socket.recv(min(size, 4096))
+        size -= len(chunk)
+        data += chunk
+    return data
+
+
+# def send_to_socket(socket, data):
+#     i = 0
+#     while i < len(data):
+#         socket.send(4096)
+
+
 class CoolWorkerClient:
     def __init__(self, socket):
         self.socket = socket
@@ -245,22 +257,21 @@ class CoolWorkerClient:
     def get_current_task(self):
         print('Waiting for task')
         # try:
-        size = self.socket.recv(32)
+        size = recv_from_socket(self.socket, 32)
         size = size.decode('ascii')
-        print("sosi hui kursavaya = ", len(size), "   ",  size)
         size = int(size)
         print('Got task!')
         parts = size // 4096
         data = b''
         recv_len = 0
         for _ in range(parts):
-            chunk = self.socket.recv(4096)
+            chunk = recv_from_socket(self.socket, 4096)
             if len(chunk) != 4096:
                 print("Ebis ono vse konem!", len(chunk))
             recv_len += len(chunk)
             data += chunk
         if size % 4096 != 0:
-            chunk = self.socket.recv(4096)[0:size % 4096]
+            chunk = recv_from_socket(self.socket, 4096)[0:size % 4096]
             if len(chunk) != 4096:
                 print("Ebis ono vse konem!", size % 4096, "  ", len(chunk))
             recv_len += len(chunk)
@@ -280,8 +291,6 @@ class CoolWorkerClient:
         data = data.encode('ascii')
         data = data.zfill(32)
         sent = self.socket.sendall(data)
-        if sent != 32:
-            print("Blyaaaaaaaaaaaaaa!", sent, 32)
         # self.r.publish(get_result_key(self.worker_id), serialize(result))
 
 
@@ -308,8 +317,6 @@ class CoolMasterClient:
             size = str(size).encode('ascii')
             size = size.zfill(32)
             sent = socket.sendall(size)
-            if sent != 32:
-                print("Sukaaaaaaaaaaaaaaaaaaaa", 32, sent)
 
             size = len(serialized_task_data)
 
@@ -317,13 +324,9 @@ class CoolMasterClient:
 
             for i in range(parts):
                 sent = socket.sendall(serialized_task_data[4096*i:4096*(i + 1)])
-                if sent != 4096:
-                    print("fjslfhslfs nenavizhu!", sent, 4096)
 
             if size % 4096 != 0:
                 sent = socket.sendall(serialized_task_data[4096*parts:] + b'0'*(4096 - size % 4096))
-                if sent != size % 4096:
-                    print("Ebal v rot govno python govno", sent, size % 4096)
 
             # socket.send(serialized_task_data)
             print('send to ' + str(worker_id))
@@ -339,7 +342,7 @@ class CoolMasterClient:
         results = []
 
         for worker_id in range(self.num_workers):
-            data = self.sockets[worker_id].recv(32)
+            data = recv_from_socket(self.sockets[worker_id], 32)
             data = data.decode('ascii')
             data = float(data)
             result = data
