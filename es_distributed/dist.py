@@ -52,14 +52,11 @@ class CoolWorkerClient:
         size = int(size)
         parts = size // 4096
         data = b''
-        recv_len = 0
         for _ in range(parts):
             chunk = recv_from_socket(self.socket, 4096)
-            recv_len += len(chunk)
             data += chunk
         if size % 4096 != 0:
             chunk = recv_from_socket(self.socket, 4096)[0:size % 4096]
-            recv_len += len(chunk)
             data += chunk
 
         assert len(data) == size

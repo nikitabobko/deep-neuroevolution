@@ -1,6 +1,6 @@
 appdirs==1.4.3
 click==6.7
-gym==0.9.4
+gym==0.12.1
 h5py==2.7.0
 mujoco-py==0.5.7
 numpy==1.16.3

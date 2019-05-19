@@ -127,7 +127,7 @@ def batched_weighted_sum(weights, vecs, batch_size):
 
 def setup(exp, single_threaded):
     import gym
-    gym.undo_logger_setup()
+    # gym.undo_logger_setup()
     from . import policies, tf_util
 
     config = Config(**exp['config'])
@@ -226,7 +226,9 @@ def run_master(log_dir, exp, num_workers, sockets):
 
     tstart = time.time()
 
-    population = [theta + np.random.sample(theta.size) for _ in range(num_workers)]
+    a = 100_000
+
+    population = [theta + a*np.random.sample(theta.size) - a // 2 for _ in range(num_workers)]
     efficiency = None
 
     global master

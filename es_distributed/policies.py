@@ -185,8 +185,7 @@ class ESAtariPolicy(Policy):
         novelty_vector = []
         t = 0
 
-        if save_obs:
-            obs = []
+        obs = []
 
         if policy_seed:
             env.seed(policy_seed)

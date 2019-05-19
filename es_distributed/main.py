@@ -54,7 +54,7 @@ def master(algo, exp_file, log_dir, num_workers):
     logging.info('Spawning {} workers'.format(num_workers))
 
     bind_ip = '127.0.0.1'
-    bind_port = 6666
+    bind_port = 9999
 
     write_pipes = []
     for worker_id in range(num_workers):
