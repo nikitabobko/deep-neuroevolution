@@ -22,14 +22,10 @@ def get_result_key(worker_id):
 
 
 def serialize(x):
-    # return json.dumps(x)
     return pickle.dumps(x, protocol=-1)
 
 
 def deserialize(x):
-    # ret = json.loads(x)
-    # ret['params'] = np.array(ret['params'])
-    # return ret
     return pickle.loads(x)
 
 

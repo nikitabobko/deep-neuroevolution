@@ -155,6 +155,9 @@ def differential_evolution_one_step(
         crossover_prob=0.9,
         seed=None,
         name=None):
+    numpy_population = population
+    population = list(map(lambda x: tf.constant(x, dtype=tf.float32), population))
+
     with tf.name_scope(name, 'one_step',
                        [population,
                         population_values,
@@ -162,7 +165,7 @@ def differential_evolution_one_step(
                         crossover_prob]):
         population, _ = _ensure_list(population)
         if population_values is None:
-            population_values = objective_function(*population)
+            population_values = objective_function(*numpy_population)
         population_size = tf.shape(population[0])[0]
         seed_stream = distributions.SeedStream(seed, salt='one_step')
         mixing_indices = _get_mixing_indices(population_size, seed=seed_stream())
@@ -178,20 +181,21 @@ def differential_evolution_one_step(
                                        mutants,
                                        crossover_prob,
                                        seed=seed_stream())
+        candidates = list(map(lambda x: tf.Session().run(x), candidates))
         candidate_values = objective_function(*candidates)
         if population_values is None:
-            population_values = objective_function(*population)
+            population_values = objective_function(*numpy_population)
 
-        infinity = tf.zeros_like(population_values) + np.inf
+        # infinity = tf.zeros_like(population_values) + np.inf
 
-        population_values = tf.where(tf.debugging.is_nan(population_values),
-                                     x=infinity,
-                                     y=population_values)
+        # population_values = tf.where(tf.debugging.is_nan(population_values),
+        #                              x=infinity,
+        #                              y=population_values)
 
-        to_replace = candidate_values < population_values
+        to_replace = np.array(candidate_values) < np.array(population_values)
 
-        next_population = tf.where(to_replace, x=candidates, y=population)
-        next_values = tf.where(to_replace, x=candidate_values, y=population_values)
+        next_population = np.where(to_replace[:, None], candidates, numpy_population)
+        next_values = np.where(to_replace, candidate_values, population_values)
 
     return next_population, next_values
 
@@ -206,7 +210,7 @@ def differential_evolution_one_step_objective_function(*population):
     assert len(population) == master.num_workers
 
     print('master: Send tasks')
-    master.declare_tasks(list(map(lambda x: Task(tf.get_default_session().run(x), tslimit), population)))
+    master.declare_tasks(list(map(lambda x: Task(x, tslimit), population)))
 
     print('master: Waiting results')
     return list(map(lambda x: -x, master.pop_results()))
@@ -244,13 +248,9 @@ def run_master(log_dir, exp, num_workers, sockets):
         crossover_prob = HackFloat(0.9)
 
         population, efficiency = differential_evolution_one_step(differential_evolution_one_step_objective_function,
-                                                                 list(map(lambda x: tf.constant(x, dtype=tf.float32),
-                                                                          population)),
+                                                                 population,
                                                                  population_values=efficiency,
                                                                  crossover_prob=crossover_prob)
-
-        population = tf.get_default_session().run(population)
-        efficiency = tf.get_default_session().run(efficiency)
 
         # noinspection PyTypeChecker
         theta = population[np.argmin(efficiency)]
@@ -265,9 +265,10 @@ def run_master(log_dir, exp, num_workers, sockets):
         tlogger.dump_tabular()
 
         if config.snapshot_freq != 0 and generation % config.snapshot_freq == 0:
-            import os.path as osp
-            filename = 'snapshot_iter{:05d}.h5'.format(generation)
-            assert not osp.exists(filename)
+            filename = 'snapshot_iter{:05d}_efficiency{:03d}.h5'.format(generation, efficiency)
+            import os
+            if os.path.exists(filename):
+                os.remove(filename)
             policy.save(filename)
             tlogger.log('Saved snapshot {}'.format(filename))
 
