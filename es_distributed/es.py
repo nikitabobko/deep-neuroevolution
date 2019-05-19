@@ -23,14 +23,6 @@ Task = namedtuple('Task', ['params', 'timestep_limit'])
 Result = namedtuple('Result', ['worker_id', 'task_id', 'rew_sum'])
 
 
-# def task(task_id, params, timestep_limit):
-#     return {
-#         'task_id': task_id,
-#         'params': params,
-#         'timestep_limit': timestep_limit
-#     }
-
-
 class RunningStat(object):
     def __init__(self, shape, eps):
         self.sum = np.zeros(shape, dtype=np.float32)
@@ -139,14 +131,11 @@ def setup(exp, single_threaded):
     from . import policies, tf_util
 
     config = Config(**exp['config'])
-    print('-------pidr 0')
     env = gym.make(exp['env_id'])
-    print('-------pidr 0.1')
     if exp['policy']['type'] == "ESAtariPolicy":
         from .atari_wrappers import wrap_deepmind
         env = wrap_deepmind(env)
     sess = make_session(single_threaded=single_threaded)
-    print('-------pidr 1')
     policy = getattr(policies, exp['policy']['type'])(env.observation_space, env.action_space, **exp['policy']['args'])
     tf_util.initialize()
     return config, env, sess, policy
@@ -219,7 +208,7 @@ def differential_evolution_one_step_objective_function(*population):
     print('master: Send tasks')
     master.declare_tasks(list(map(lambda x: Task(tf.get_default_session().run(x), tslimit), population)))
 
-    print('master: Waiting result')
+    print('master: Waiting results')
     return list(map(lambda x: -x, master.pop_results()))
 
 
@@ -231,10 +220,6 @@ def run_master(log_dir, exp, num_workers, sockets):
     tlogger.start(log_dir)
     config, env, sess, policy = setup(exp, single_threaded=False)
     theta = policy.get_trainable_flat()
-
-    # global ref_batch
-    # ref_batch = get_ref_batch(env, batch_size=128)
-    # policy.set_ref_batch(ref_batch)
 
     global tslimit
     tslimit = config.episode_cutoff_mode
@@ -248,10 +233,6 @@ def run_master(log_dir, exp, num_workers, sockets):
     master = CoolMasterClient(num_workers, sockets)
 
     generation = 0
-
-    # import pydevd_pycharm
-    # pydevd_pycharm.settrace('localhost', port=5005, stdoutToServer=True, stderrToServer=True)
-    # print('------master')  # todo
 
     while True:
         step_tstart = time.time()
@@ -305,19 +286,13 @@ def run_worker(exp, socket):
     logger.info('run_worker: {}'.format(locals()))
 
     worker = CoolWorkerClient(socket)
-    # after creating worker we are subscribed and must notify master about it todo remove comment
-    # write_pipe.write("0")
 
     config, env, sess, policy = setup(exp, single_threaded=True)
-    # rs = np.random.RandomState()
 
     assert policy.needs_ob_stat == (config.calc_obstat_prob != 0)
 
     while True:
         task_data = worker.get_current_task()
-        # policy.set_ref_batch(task_data.ref_batch)
-
-        # Evaluation: noiseless weights and noiseless actions
         policy.set_trainable_flat(task_data.params)
         rew_sum, eval_length, _ = policy.rollout(env, timestep_limit=task_data.timestep_limit)
         worker.push_result(rew_sum)

@@ -34,7 +34,6 @@ def main(env_id, policy_file, record, stochastic, extra_kwargs):
         pi = ESAtariPolicy.Load(policy_file, extra_kwargs=extra_kwargs)
         pi.set_ref_batch(get_ref_batch(env, batch_size=128))
 
-            
         while True:
             if is_atari_policy:
                 rews, t, novelty_vector = pi.rollout(env, render=True, random_stream=np.random if stochastic else None)
