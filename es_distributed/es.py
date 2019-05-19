@@ -265,6 +265,7 @@ def run_master(log_dir, exp, num_workers, sockets):
         tlogger.dump_tabular()
 
         if config.snapshot_freq != 0 and generation % config.snapshot_freq == 0:
+            print('efficiency=', efficiency)
             filename = 'snapshot_iter{:05d}_efficiency{:05f}.h5'.format(generation, -np.min(efficiency))
             import os
             if os.path.exists(filename):
