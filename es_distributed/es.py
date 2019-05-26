@@ -237,7 +237,7 @@ def run_master(log_dir, exp, num_workers, sockets):
 
     tstart = time.time()
 
-    a = 10_000_000
+    a = 100_000
 
     population = np.array([theta + a*np.random.sample(theta.size) - a // 2 for _ in range(num_workers)])
     efficiency = None
