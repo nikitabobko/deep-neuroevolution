@@ -260,7 +260,7 @@ def run_master(log_dir, exp, num_workers, sockets):
                                                                  differential_weight=random.uniform(0.5, 1.0))
 
         # noinspection PyTypeChecker
-        theta = population[np.argmin(efficiency)]
+        theta = population[np.argmax(efficiency)]
         # updating policy
         policy.set_trainable_flat(theta)
 
@@ -268,12 +268,12 @@ def run_master(log_dir, exp, num_workers, sockets):
 
         tlogger.record_tabular("TimeElapsedThisIter", step_tend - step_tstart)
         tlogger.record_tabular("TimeElapsed", step_tend - tstart)
-        tlogger.record_tabular("Efficiency", -np.min(efficiency))
+        tlogger.record_tabular("Efficiency", np.max(efficiency))
         tlogger.dump_tabular()
 
         if config.snapshot_freq != 0 and generation % config.snapshot_freq == 0:
             print('efficiency=', efficiency)
-            filename = 'snapshot_iter{:05d}_efficiency{:05f}.h5'.format(generation, -np.min(efficiency))
+            filename = 'snapshot_iter{:05d}_efficiency{:05f}.h5'.format(generation, np.max(efficiency))
             import os
             if os.path.exists(filename):
                 os.remove(filename)
