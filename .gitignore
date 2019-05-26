@@ -8,3 +8,15 @@ mujoco/mjpro131
 *.h5
 gym_tensorflow.so
 .idea
+
+# Latex
+*.aux
+*.log
+*.pdf
+*.fls
+*.fdb_latexmk
+*.in
+*.lua
+*.out
+*.gz
+*.toc
