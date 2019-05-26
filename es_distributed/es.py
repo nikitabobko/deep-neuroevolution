@@ -186,7 +186,8 @@ def differential_evolution_one_step(
                                        crossover_prob,
                                        seed=seed_stream())
         print('after _binary_crossover')
-        candidates = list(map(lambda x: tf.Session().run(x), candidates))
+        session = tf.Session()
+        candidates = list(map(lambda x: session.run(x), candidates))
         candidate_values = objective_function(*candidates)
         if population_values is None:
             population_values = objective_function(*numpy_population)
