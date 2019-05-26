@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import logging
 import time
+import random
 from collections import namedtuple
 
 from tensorflow_probability.python.optimizer.differential_evolution import *
@@ -230,7 +231,7 @@ def run_master(log_dir, exp, num_workers, sockets):
 
     tstart = time.time()
 
-    a = 100_000
+    a = 10_000_000
 
     population = [theta + a*np.random.sample(theta.size) - a // 2 for _ in range(num_workers)]
     efficiency = None
@@ -250,7 +251,8 @@ def run_master(log_dir, exp, num_workers, sockets):
         population, efficiency = differential_evolution_one_step(differential_evolution_one_step_objective_function,
                                                                  population,
                                                                  population_values=efficiency,
-                                                                 crossover_prob=crossover_prob)
+                                                                 crossover_prob=crossover_prob,
+                                                                 differential_weight=random.uniform(0.5, 1.0))
 
         # noinspection PyTypeChecker
         theta = population[np.argmin(efficiency)]
