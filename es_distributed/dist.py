@@ -105,6 +105,6 @@ class CoolMasterClient:
             data = data.decode('ascii')
             data = float(data)
             result = data
-            np.append(results, result)
+            results = np.append(results, result)
 
         return results
