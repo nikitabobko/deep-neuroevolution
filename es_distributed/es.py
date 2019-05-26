@@ -158,6 +158,7 @@ def differential_evolution_one_step(
         name=None):
     numpy_population = population
     population = list(map(lambda x: tf.constant(x, dtype=tf.float32), population))
+    print('converted to tensors')
 
     with tf.name_scope(name, 'one_step',
                        [population,
@@ -165,6 +166,7 @@ def differential_evolution_one_step(
                         differential_weight,
                         crossover_prob]):
         population, _ = _ensure_list(population)
+        print('after _ensure_list')
         if population_values is None:
             population_values = objective_function(*numpy_population)
         population_size = tf.shape(population[0])[0]
@@ -176,12 +178,14 @@ def differential_evolution_one_step(
                                population_size,
                                mixing_indices,
                                differential_weight)
+        print('after _get_mutants')
         # Perform recombination between the parents and the mutants.
         candidates = _binary_crossover(population,
                                        population_size,
                                        mutants,
                                        crossover_prob,
                                        seed=seed_stream())
+        print('after _binary_crossover')
         candidates = list(map(lambda x: tf.Session().run(x), candidates))
         candidate_values = objective_function(*candidates)
         if population_values is None:
@@ -193,7 +197,7 @@ def differential_evolution_one_step(
         #                              x=infinity,
         #                              y=population_values)
 
-        to_replace = np.array(candidate_values) < np.array(population_values)
+        to_replace = candidate_values > population_values
 
         next_population = np.where(to_replace[:, None], candidates, numpy_population)
         next_values = np.where(to_replace, candidate_values, population_values)
@@ -210,11 +214,12 @@ def differential_evolution_one_step_objective_function(*population):
     global tslimit
     assert len(population) == master.num_workers
 
-    print('master: Send tasks')
+    print('master: Start sending tasks')
     master.declare_tasks(list(map(lambda x: Task(x, tslimit), population)))
+    print('master: sent tasks')
 
     print('master: Waiting results')
-    return list(map(lambda x: -x, master.pop_results()))
+    return master.pop_results()
 
 
 def run_master(log_dir, exp, num_workers, sockets):
@@ -233,7 +238,7 @@ def run_master(log_dir, exp, num_workers, sockets):
 
     a = 10_000_000
 
-    population = [theta + a*np.random.sample(theta.size) - a // 2 for _ in range(num_workers)]
+    population = np.array([theta + a*np.random.sample(theta.size) - a // 2 for _ in range(num_workers)])
     efficiency = None
 
     global master

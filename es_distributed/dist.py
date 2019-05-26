@@ -1,5 +1,6 @@
 import logging
 import pickle
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -97,13 +98,13 @@ class CoolMasterClient:
             worker_id += 1
 
     def pop_results(self):
-        results = []
+        results = np.array([])
 
         for worker_id in range(self.num_workers):
             data = recv_from_socket(self.sockets[worker_id], 32)
             data = data.decode('ascii')
             data = float(data)
             result = data
-            results.append(result)
+            np.append(results, result)
 
         return results
