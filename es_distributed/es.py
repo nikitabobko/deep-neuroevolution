@@ -257,7 +257,8 @@ def run_master(log_dir, exp, num_workers, sockets):
         population, efficiency = differential_evolution_one_step(differential_evolution_one_step_objective_function,
                                                                  population,
                                                                  population_values=efficiency,
-                                                                 crossover_prob=crossover_prob)
+                                                                 crossover_prob=crossover_prob,
+                                                                 differential_weight=random.uniform(0.5, 1.0))
 
         # noinspection PyTypeChecker
         theta = population[np.argmax(efficiency)]
