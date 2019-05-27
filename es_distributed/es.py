@@ -247,6 +247,8 @@ def run_master(log_dir, exp, num_workers, sockets):
 
     generation = 0
 
+    prev_efficiency = 0
+
     while True:
         step_tstart = time.time()
 
@@ -274,7 +276,7 @@ def run_master(log_dir, exp, num_workers, sockets):
 
         print('efficiency=', efficiency)
 
-        if config.snapshot_freq != 0 and generation % config.snapshot_freq == 0:
+        if (config.snapshot_freq != 0 and generation % config.snapshot_freq == 0) or prev_efficiency != efficiency:
             filename = 'snapshot_iter{:05d}_efficiency{:05f}.h5'.format(generation, np.max(efficiency))
             import os
             if os.path.exists(filename):
@@ -282,6 +284,7 @@ def run_master(log_dir, exp, num_workers, sockets):
             policy.save(filename)
             tlogger.log('Saved snapshot {}'.format(filename))
 
+        prev_efficiency = efficiency
         generation += 1
 
 
