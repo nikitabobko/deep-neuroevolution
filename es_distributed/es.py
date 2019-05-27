@@ -247,7 +247,7 @@ def run_master(log_dir, exp, num_workers, sockets):
 
     generation = 0
 
-    prev_efficiency = 0
+    prev_best_efficiency = 0
 
     while True:
         step_tstart = time.time()
@@ -269,22 +269,24 @@ def run_master(log_dir, exp, num_workers, sockets):
 
         step_tend = time.time()
 
+        best_efficiency = np.max(efficiency)
+
         tlogger.record_tabular("TimeElapsedThisIter", step_tend - step_tstart)
         tlogger.record_tabular("TimeElapsed", step_tend - tstart)
-        tlogger.record_tabular("Efficiency", np.max(efficiency))
+        tlogger.record_tabular("Efficiency", best_efficiency)
         tlogger.dump_tabular()
 
         print('efficiency=', efficiency)
 
-        if (config.snapshot_freq != 0 and generation % config.snapshot_freq == 0) or prev_efficiency != efficiency:
-            filename = 'snapshot_iter{:05d}_efficiency{:05f}.h5'.format(generation, np.max(efficiency))
+        if (config.snapshot_freq != 0 and generation % config.snapshot_freq == 0) or prev_best_efficiency != best_efficiency:
+            filename = 'snapshot_iter{:05d}_efficiency{:05f}.h5'.format(generation, best_efficiency)
             import os
             if os.path.exists(filename):
                 os.remove(filename)
             policy.save(filename)
             tlogger.log('Saved snapshot {}'.format(filename))
 
-        prev_efficiency = efficiency
+        prev_best_efficiency = best_efficiency
         generation += 1
 
 
